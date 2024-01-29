@@ -158,22 +158,23 @@ const insertData = async () => {
       if (res) {
         await axios.delete(`https://demo.mercuryfire.com.tw:49110/crudTest/${tempPost.value.id}`);
       }
-      getData();
       showMeesage.value = "修改成功";
-      noticeDialog.value = true;
-      tempData.value.age = "";
-      tempData.value.name = "";
       switchLabel.value = "新增";
     }
     else {
       tempData.value.age = Number(tempData.value.age);
       await axios.post("https://demo.mercuryfire.com.tw:49110/crudTest", tempData.value);
       showMeesage.value = "新增成功";
-      noticeDialog.value = true;
     }
   }
   catch (error) {
     console.error(`Insert data error = ${error}`);
+  }
+  finally {
+    getData();
+    tempData.value.age = "";
+    tempData.value.name = "";
+    noticeDialog.value = true;
   }
 };
 const checkInput = (data: dataType) => {
