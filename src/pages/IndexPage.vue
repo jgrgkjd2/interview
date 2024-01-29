@@ -2,22 +2,15 @@
   <q-page class="row q-pt-xl">
     <div class="full-width q-px-xl">
       <div class="q-mb-xl">
-        <q-input v-model="tempData.name" label="姓名" />
-        <q-input v-model="tempData.age" label="年齡" />
-        <q-btn color="primary" class="q-mt-md">新增</q-btn>
+        <q-form @submit="insertData">
+          <q-input v-model="tempData.name" label="姓名" />
+          <q-input v-model="tempData.age" label="年齡" />
+          <q-btn type="submit" color="primary" class="q-mt-md">{{ switchLabel }}</q-btn>
+        </q-form>
       </div>
 
-      <q-table
-        flat
-        bordered
-        ref="tableRef"
-        :rows="blockData"
-        :columns="(tableConfig as QTableProps['columns'])"
-        row-key="id"
-        hide-pagination
-        separator="cell"
-        :rows-per-page-options="[0]"
-      >
+      <q-table flat bordered ref="tableRef" :rows="blockData" :columns="(tableConfig as QTableProps['columns'])"
+        row-key="id" hide-pagination separator="cell" :rows-per-page-options="[0]">
         <template v-slot:header="props">
           <q-tr :props="props">
             <q-th v-for="col in props.cols" :key="col.name" :props="props">
@@ -29,34 +22,14 @@
 
         <template v-slot:body="props">
           <q-tr :props="props">
-            <q-td
-              v-for="col in props.cols"
-              :key="col.name"
-              :props="props"
-              style="min-width: 120px"
-            >
+            <q-td v-for="col in props.cols" :key="col.name" :props="props" style="min-width: 120px">
               <div>{{ col.value }}</div>
             </q-td>
             <q-td class="text-right" auto-width v-if="tableButtons.length > 0">
-              <q-btn
-                @click="handleClickOption(btn, props.row)"
-                v-for="(btn, index) in tableButtons"
-                :key="index"
-                size="sm"
-                color="grey-6"
-                round
-                dense
-                :icon="btn.icon"
-                class="q-ml-md"
-                padding="5px 5px"
-              >
-                <q-tooltip
-                  transition-show="scale"
-                  transition-hide="scale"
-                  anchor="top middle"
-                  self="bottom middle"
-                  :offset="[10, 10]"
-                >
+              <q-btn @click="handleClickOption(btn, props.row)" v-for="(btn, index) in tableButtons" :key="index"
+                size="sm" color="grey-6" round dense :icon="btn.icon" class="q-ml-md" padding="5px 5px">
+                <q-tooltip transition-show="scale" transition-hide="scale" anchor="top middle" self="bottom middle"
+                  :offset="[10, 10]">
                   {{ btn.label }}
                 </q-tooltip>
               </q-btn>
@@ -64,15 +37,25 @@
           </q-tr>
         </template>
         <template v-slot:no-data="{ icon }">
-          <div
-            class="full-width row flex-center items-center text-primary q-gutter-sm"
-            style="font-size: 18px"
-          >
+          <div class="full-width row flex-center items-center text-primary q-gutter-sm" style="font-size: 18px">
             <q-icon size="2em" :name="icon" />
             <span> 無相關資料 </span>
           </div>
         </template>
       </q-table>
+
+      <q-btn @click="noticeDialog = true">點我</q-btn>
+      <q-dialog v-model="noticeDialog" persistent>
+        <q-card>
+          <q-card-section class="q-pt-md q-pb-md">
+            <q-card-title class="text-h6">{{ showMeesage }}</q-card-title>
+          </q-card-section>
+
+          <q-card-actions align="right" style="width: 300px;height: 50px;">
+            <q-btn label="確定" color="primary" @click="noticeDialog = false" />
+          </q-card-actions>
+        </q-card>
+      </q-dialog>
     </div>
   </q-page>
 </template>
@@ -80,17 +63,27 @@
 <script setup lang="ts">
 import axios from 'axios';
 import { QTableProps } from 'quasar';
-import { ref } from 'vue';
+import { ref, onMounted } from 'vue';
+
+let noticeDialog = ref(false);
+let showMeesage = ref("");
 interface btnType {
   label: string;
   icon: string;
   status: string;
 }
+interface dataType {
+  name: string;
+  age: number;
+  creatorId: string;
+  id: string;
+};
+const switchLabel = ref("新增");
 const blockData = ref([
-  {
-    name: 'test',
-    age: 25,
-  },
+  // {
+  //   name: 'test',
+  //   age: 25,
+  // },
 ]);
 const tableConfig = ref([
   {
@@ -121,11 +114,70 @@ const tableButtons = ref([
 
 const tempData = ref({
   name: '',
-  age: '',
+  age: '' as number | string,
 });
-function handleClickOption(btn, data) {
-  // ...
+const tempPost = ref({
+  name: "",
+  age: "" as number | string,
+  creatorId: "",
+  id: "",
+})
+async function handleClickOption(btn: btnType, data: dataType) {
+  try {
+    if (btn.status === "edit") {
+      tempData.value = data;
+      tempPost.value = data;
+      switchLabel.value = "更新";
+    }
+    else {
+      const res = await axios.delete(`https://demo.mercuryfire.com.tw:49110/crudTest/${data.id}`);
+      console.log(`delete = ${res.data}`);
+      getData();
+      showMeesage.value = "刪除成功";
+      noticeDialog.value = true;
+    }
+  }
+  catch (error) {
+    console.error(error);
+  }
 }
+const getData = async () => {
+  try {
+    const res = await axios.get("https://demo.mercuryfire.com.tw:49110/crudTest/a");
+    blockData.value = res.data.result;
+    console.log(blockData.value);
+  }
+  catch (error) {
+    console.error(`Get data error = ${error}`);
+  }
+};
+const insertData = async () => {
+  try {
+    if (switchLabel.value === "更新") {
+      tempData.value.age = Number(tempData.value.age);
+      const res = await axios.post("https://demo.mercuryfire.com.tw:49110/crudTest", tempData.value);
+      if (res) {
+        await axios.delete(`https://demo.mercuryfire.com.tw:49110/crudTest/${tempPost.value.id}`);
+      }
+      getData();
+      showMeesage.value = "修改成功";
+      noticeDialog.value = true;
+    }
+    else {
+      tempData.value.age = Number(tempData.value.age);
+      await axios.post("https://demo.mercuryfire.com.tw:49110/crudTest", tempData.value);
+      showMeesage.value = "新增成功";
+      noticeDialog.value = true;
+    }
+  }
+  catch (error) {
+    console.error(`Insert data error = ${error}`);
+  }
+};
+
+onMounted(() => {
+  getData();
+})
 </script>
 
 <style lang="scss" scoped>
