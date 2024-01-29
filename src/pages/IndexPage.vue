@@ -44,7 +44,6 @@
         </template>
       </q-table>
 
-      <q-btn @click="noticeDialog = true">點我</q-btn>
       <q-dialog v-model="noticeDialog" persistent>
         <q-card>
           <q-card-section class="q-pt-md q-pb-md">
@@ -162,6 +161,9 @@ const insertData = async () => {
       getData();
       showMeesage.value = "修改成功";
       noticeDialog.value = true;
+      tempData.value.age = "";
+      tempData.value.name = "";
+      switchLabel.value = "新增";
     }
     else {
       tempData.value.age = Number(tempData.value.age);
@@ -174,7 +176,18 @@ const insertData = async () => {
     console.error(`Insert data error = ${error}`);
   }
 };
-
+const checkInput = (data: dataType) => {
+  // 沒引用
+  if (data.age.toString.length === 0) {
+    showMeesage.value = "數字未填";
+    return false;
+  }
+  if (data.name.length === 0) {
+    showMeesage.value = "名字未填";
+    return false;
+  }
+  return true;
+}
 onMounted(() => {
   getData();
 })
